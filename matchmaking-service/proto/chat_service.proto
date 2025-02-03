@@ -1,0 +1,43 @@
+syntax = "proto3";
+
+package chat;
+
+option go_package = "internal/grpc/chatpb";
+
+// ChatService - сервис для управления чатами
+service ChatService {
+  // Создание чата между двумя пользователями
+  rpc CreateChat (CreateChatRequest) returns (CreateChatResponse);
+
+  // Получение чатов пользователя
+  rpc GetUserChats (GetUserChatsRequest) returns (GetUserChatsResponse);
+}
+
+// Запрос на создание чата
+message CreateChatRequest {
+  int64 user1_id = 1;
+  int64 user2_id = 2;
+}
+
+// Ответ после создания чата
+message CreateChatResponse {
+  int64 chat_id = 1;
+}
+
+// Запрос на получение чатов пользователя
+message GetUserChatsRequest {
+  int64 user_id = 1;
+}
+
+// Ответ с списком чатов пользователя
+message GetUserChatsResponse {
+  repeated ChatInfo chats = 1;
+}
+
+// Информация о чате
+message ChatInfo {
+  int64 chat_id = 1;
+  int64 user1_id = 2;
+  int64 user2_id = 3;
+  string created_at = 4;
+}
