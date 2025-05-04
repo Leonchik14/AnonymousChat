@@ -22,29 +22,24 @@ type App struct {
 	FiberApp *fiber.App
 }
 
-// NewApp - инициализация приложения
 func NewApp() *App {
 	if err := godotenv.Load(); err != nil {
 		log.Println("⚠️ .env файл не найден, используем переменные окружения")
 	}
 
-	// 🔹 Читаем переменные окружения
 	dbUser := os.Getenv("DB_USER")
 	dbPassword := os.Getenv("DB_PASSWORD")
 	dbHost := os.Getenv("DB_HOST")
 	dbPort := os.Getenv("DB_PORT")
 	dbName := os.Getenv("DB_NAME")
 
-	// 🔹 Формируем строку подключения к MySQL
 	dsn := dbUser + ":" + dbPassword + "@tcp(" + dbHost + ":" + dbPort + ")/" + dbName + "?parseTime=true"
 
-	// 🔹 Подключаем MySQL
 	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
 	if err != nil {
 		log.Fatalf("❌ Ошибка подключения к MySQL: %v", err)
 	}
 
-	// 🔹 Автоматическая миграция таблиц
 	if err := db.AutoMigrate(&models.Chat{}, &models.Message{}); err != nil {
 		log.Fatalf("❌ Ошибка миграции базы данных: %v", err)
 	}
@@ -63,7 +58,6 @@ func NewApp() *App {
 	app := fiber.New()
 	chatHandler := handler.NewChatHandler(chatRepo)
 
-	// 🔹 Настраиваем маршруты
 	app.Get("/ws/chat/:chat_id", websocket.New(chatHandler.WebSocketHandler))
 	app.Get("/chat/history/:chat_id", chatHandler.GetChatHistory)
 

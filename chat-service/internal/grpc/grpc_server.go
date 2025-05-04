@@ -2,6 +2,7 @@ package grpc
 
 import (
 	"context"
+	"google.golang.org/grpc/reflection"
 	"log"
 	"net"
 
@@ -27,7 +28,6 @@ func (s *ChatServer) CreateChat(ctx context.Context, req *chatpb.CreateChatReque
 	return s.chatService.CreateChat(ctx, req)
 }
 
-// Запуск gRPC сервера
 func RunGRPCServer(chatService *service.ChatService) {
 	listener, err := net.Listen("tcp", ":50051")
 	if err != nil {
@@ -36,6 +36,8 @@ func RunGRPCServer(chatService *service.ChatService) {
 
 	grpcServer := grpc.NewServer()
 	chatpb.RegisterChatServiceServer(grpcServer, NewChatServer(chatService))
+
+	reflection.Register(grpcServer)
 
 	log.Println("🚀 Chat Service (gRPC) запущен на порту 50051")
 	if err := grpcServer.Serve(listener); err != nil {

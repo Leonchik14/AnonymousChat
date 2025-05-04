@@ -2,8 +2,10 @@ package handler
 
 import (
 	"context"
+	"encoding/json"
 	"log"
 	"strconv"
+	"time"
 
 	"chat-service/internal/repository"
 	"chat-service/pkg/models"
@@ -12,13 +14,11 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-// ChatHandler - обработчик чатов
 type ChatHandler struct {
 	chatRepo *repository.ChatRepository
 	clients  map[int64]map[*websocket.Conn]bool // WebSocket-клиенты (chat_id -> conn)
 }
 
-// NewChatHandler - конструктор обработчика
 func NewChatHandler(chatRepo *repository.ChatRepository) *ChatHandler {
 	return &ChatHandler{
 		chatRepo: chatRepo,
@@ -26,11 +26,10 @@ func NewChatHandler(chatRepo *repository.ChatRepository) *ChatHandler {
 	}
 }
 
-// WebSocketHandler - обработка WebSocket соединений
 func (h *ChatHandler) WebSocketHandler(c *websocket.Conn) {
 	defer c.Close()
 
-	// Получаем chat_id из параметров запроса
+	// Получаем chat_id из пути
 	chatIDStr := c.Params("chat_id")
 	chatID, err := strconv.ParseInt(chatIDStr, 10, 64)
 	if err != nil {
@@ -38,7 +37,7 @@ func (h *ChatHandler) WebSocketHandler(c *websocket.Conn) {
 		return
 	}
 
-	// Подключаем клиента к чату
+	// Регистрируем нового WS-клиента
 	if h.clients[chatID] == nil {
 		h.clients[chatID] = make(map[*websocket.Conn]bool)
 	}
@@ -46,31 +45,46 @@ func (h *ChatHandler) WebSocketHandler(c *websocket.Conn) {
 	log.Printf("✅ Пользователь подключился к чату %d", chatID)
 
 	for {
-		_, msg, err := c.ReadMessage()
+		// Читаем сырое сообщение
+		_, raw, err := c.ReadMessage()
 		if err != nil {
-			log.Printf("❌ Отключение клиента от чата %d", chatID)
+			log.Printf("❌ Отключение клиента от чата %d: %v", chatID, err)
 			delete(h.clients[chatID], c)
 			break
 		}
 
-		message := models.Message{
-			ChatID:  chatID,
-			Content: string(msg),
+		// Парсим JSON из фронтенда
+		var wsMsg models.WsMessage
+		if err := json.Unmarshal(raw, &wsMsg); err != nil {
+			log.Println("❌ Неверный формат WS-сообщения:", err)
+			continue
 		}
-		if err := h.chatRepo.SaveMessage(context.Background(), &message); err != nil {
+
+		// Проставляем серверное время
+		wsMsg.Timestamp = time.Now().UTC()
+
+		// Сохраняем в БД
+		modelMsg := models.Message{
+			ChatID:    chatID,
+			SenderID:  wsMsg.SenderID,
+			Content:   wsMsg.Content,
+			CreatedAt: wsMsg.Timestamp,
+		}
+		if err := h.chatRepo.SaveMessage(context.Background(), &modelMsg); err != nil {
 			log.Printf("❌ Ошибка сохранения сообщения: %v", err)
 			continue
 		}
 
+		// Рассылаем всем подключённым клиентам
+		broadcast, _ := json.Marshal(wsMsg)
 		for client := range h.clients[chatID] {
-			if err := client.WriteMessage(websocket.TextMessage, msg); err != nil {
+			if err := client.WriteMessage(websocket.TextMessage, broadcast); err != nil {
 				log.Println("❌ Ошибка отправки сообщения:", err)
 			}
 		}
 	}
 }
 
-// GetChatHistory - обработчик истории чата
 func (h *ChatHandler) GetChatHistory(c *fiber.Ctx) error {
 	chatID, err := strconv.ParseInt(c.Params("chat_id"), 10, 64)
 	if err != nil {

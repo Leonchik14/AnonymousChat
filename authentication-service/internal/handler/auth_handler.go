@@ -8,17 +8,14 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-// AuthHandler - структура обработчика
 type AuthHandler struct {
 	authService *service.AuthService
 }
 
-// NewAuthHandler - конструктор обработчика аутентификации
 func NewAuthHandler(authService *service.AuthService) *AuthHandler {
 	return &AuthHandler{authService: authService}
 }
 
-// Register - обработчик регистрации пользователя
 func (h *AuthHandler) Register(c *fiber.Ctx) error {
 	var req struct {
 		Email    string `json:"email"`
@@ -29,7 +26,6 @@ func (h *AuthHandler) Register(c *fiber.Ctx) error {
 		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Неверный формат запроса"})
 	}
 
-	// Вызываем сервис для регистрации пользователя
 	err := h.authService.RegisterUser(context.Background(), req.Email, req.Password)
 	if err != nil {
 		return c.Status(http.StatusConflict).JSON(fiber.Map{"error": err.Error()})
@@ -38,7 +34,6 @@ func (h *AuthHandler) Register(c *fiber.Ctx) error {
 	return c.Status(http.StatusCreated).JSON(fiber.Map{"message": "Пользователь успешно зарегистрирован"})
 }
 
-// Login - обработчик входа пользователя
 func (h *AuthHandler) Login(c *fiber.Ctx) error {
 	var req struct {
 		Email    string `json:"email"`
@@ -49,19 +44,15 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Неверный формат запроса"})
 	}
 
-	// Вызываем сервис для авторизации
 	accessToken, refreshToken, err := h.authService.LoginUser(context.Background(), req.Email, req.Password)
 	if err != nil {
 		return c.Status(http.StatusUnauthorized).JSON(fiber.Map{"error": "Неверный email или пароль"})
 	}
 
-	// Отправляем токен в ответе
 	return c.JSON(fiber.Map{"accessToken": accessToken, "refreshToken": refreshToken})
 }
 
-// Logout - обработчик выхода пользователя
 func (h *AuthHandler) Logout(c *fiber.Ctx) error {
-	// Получаем токен из заголовка Authorization
 	authHeader := c.Get("Authorization")
 	if authHeader == "" {
 		return c.Status(http.StatusUnauthorized).JSON(fiber.Map{"error": "Отсутствует токен"})
