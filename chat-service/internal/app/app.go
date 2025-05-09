@@ -59,7 +59,7 @@ func NewApp() *App {
 	chatHandler := handler.NewChatHandler(chatRepo)
 
 	app.Get("/ws/chat/:chat_id", websocket.New(chatHandler.WebSocketHandler))
-	app.Get("/chat/history/:chat_id", chatHandler.GetChatHistory)
+	app.Get("/api/chat/history/:chat_id", chatHandler.GetChatHistory)
 
 	return &App{
 		FiberApp: app,

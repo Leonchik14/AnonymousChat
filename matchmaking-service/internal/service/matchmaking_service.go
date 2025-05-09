@@ -28,7 +28,6 @@ func NewMatchmakingService(
 }
 
 func (s *MatchmakingService) FindMatch(ctx context.Context, userID int64) (<-chan int64, error) {
-	// 1) Подготовить канал и сохранить его
 	ch := make(chan int64, 1)
 	s.mu.Lock()
 	s.subscribers[userID] = ch

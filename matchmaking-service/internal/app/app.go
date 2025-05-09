@@ -54,7 +54,7 @@ func NewApp() *App {
 	matchmakingHandler := handler.NewMatchmakingHandler(matchmakingService)
 
 	// 🔹 Регистрация маршрутов
-	app.Post("/matchmaking/start", matchmakingHandler.StartMatchmaking)
+	app.Post("api/matchmaking/start", matchmakingHandler.StartMatchmaking)
 
 	return &App{
 		FiberApp: app,

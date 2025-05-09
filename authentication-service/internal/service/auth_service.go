@@ -44,53 +44,66 @@ func (s *AuthService) RegisterUser(ctx context.Context, email, password string) 
 		return errors.New("пользователь уже существует")
 	}
 	passwordHash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-	// Создаем пользователя
+	if err != nil {
+		return err
+	}
+
 	user := &models.User{
 		Email:        email,
 		PasswordHash: string(passwordHash),
 	}
-	if err := s.userRepo.CreateUser(ctx, user); err != nil {
+	return s.userRepo.CreateUser(ctx, user)
+}
+
+// RequestEmailVerification — генерация токена + отправка письма
+func (s *AuthService) RequestEmailVerification(ctx context.Context, email string) error {
+	user, err := s.userRepo.GetUserByEmail(ctx, email)
+	if err != nil {
 		return err
 	}
+	if user == nil {
+		return errors.New("пользователь не найден")
+	}
+	if user.IsVerified {
+		return errors.New("email уже подтверждён")
+	}
 
-	// Генерируем токен для подтверждения email
+	// Генерим JWT для вёрки
 	token, err := s.generateJWT(int64(user.ID), s.accessTTL)
 	if err != nil {
 		return err
 	}
-
-	// Отправляем email
+	// Отправляем письмо
 	return s.emailService.SendVerificationEmail(email, token)
 }
 
-func (s *AuthService) LoginUser(ctx context.Context, email, password string) (string, string, error) {
+func (s *AuthService) LoginUser(ctx context.Context, email, password string) (string, string, uint, error) {
 	user, err := s.userRepo.GetUserByEmail(ctx, email)
 	if err != nil || user == nil {
-		return "", "", errors.New("неверный email или пароль")
+		return "", "", 0, errors.New("неверный email или пароль")
 	}
 
 	// Проверяем пароль
 	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password)); err != nil {
-		return "", "", errors.New("неверный email или пароль")
+		return "", "", 0, errors.New("неверный email или пароль")
 	}
 
-	// Генерируем Access и Refresh Token
 	accessToken, err := s.generateJWT(int64(user.ID), s.accessTTL)
 	if err != nil {
-		return "", "", err
+		return "", "", 0, err
 	}
 	refreshToken, err := s.generateJWT(int64(user.ID), s.refreshTTL)
 	if err != nil {
-		return "", "", err
+		return "", "", 0, err
 	}
 
 	// Сохраняем Refresh Token в Redis
 	err = s.redisRepo.SetSession(ctx, refreshToken, user.ID, s.refreshTTL)
 	if err != nil {
-		return "", "", err
+		return "", "", 0, err
 	}
 
-	return accessToken, refreshToken, nil
+	return accessToken, refreshToken, user.ID, nil
 }
 
 // LogoutUser - выход пользователя (добавляем токен в blacklist)
@@ -100,7 +113,6 @@ func (s *AuthService) LogoutUser(ctx context.Context, token string) error {
 
 // ValidateToken - проверка JWT токена
 func (s *AuthService) ValidateToken(ctx context.Context, token string) (int64, error) {
-	// 1️⃣ Разбираем JWT и проверяем подпись
 	claims := &jwt.RegisteredClaims{}
 	parsedToken, err := jwt.ParseWithClaims(token, claims, func(t *jwt.Token) (interface{}, error) {
 		return []byte(s.jwtSecret), nil
@@ -109,12 +121,10 @@ func (s *AuthService) ValidateToken(ctx context.Context, token string) (int64, e
 		return 0, errors.New("недействительный токен")
 	}
 
-	// 2️⃣ Проверяем, не истек ли токен
 	if claims.ExpiresAt != nil && claims.ExpiresAt.Time.Before(time.Now()) {
 		return 0, errors.New("токен истек")
 	}
 
-	// 3️⃣ Извлекаем userID
 	userID, err := strconv.ParseInt(claims.Subject, 10, 64)
 	if err != nil {
 		return 0, errors.New("неверный формат userID в токене")
@@ -157,7 +167,7 @@ func (s *AuthService) VerifyUser(ctx context.Context, userID int64) error {
 	return s.userRepo.SetUserVerified(ctx, userID)
 }
 
-// ForgotPassword - обработка запроса на сброс пароля
+/*// ForgotPassword - обработка запроса на сброс пароля
 func (s *AuthService) ForgotPassword(ctx context.Context, email string) error {
 	user, err := s.userRepo.GetUserByEmail(ctx, email)
 	if err != nil || user == nil {
@@ -172,7 +182,7 @@ func (s *AuthService) ForgotPassword(ctx context.Context, email string) error {
 
 	// Отправляем email
 	return s.emailService.SendPasswordResetEmail(email, token)
-}
+}*/
 
 func (s *AuthService) generateJWT(userID int64, ttl time.Duration) (string, error) {
 	claims := &jwt.RegisteredClaims{

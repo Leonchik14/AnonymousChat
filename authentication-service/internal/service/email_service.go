@@ -7,16 +7,15 @@ import (
 	"strconv"
 )
 
-// EmailService - структура сервиса отправки email
 type EmailService struct {
 	host     string
 	port     int
 	username string
 	password string
 	from     string
+	route    string
 }
 
-// NewEmailService - конструктор сервиса Email
 func NewEmailService() *EmailService {
 	port, _ := strconv.Atoi(os.Getenv("SMTP_PORT"))
 
@@ -26,10 +25,10 @@ func NewEmailService() *EmailService {
 		username: os.Getenv("SMTP_USER"),
 		password: os.Getenv("SMTP_PASS"),
 		from:     os.Getenv("SMTP_FROM"),
+		route:    os.Getenv("SMTP_ROUTE"),
 	}
 }
 
-// SendEmail - Отправка email через SMTP
 func (e *EmailService) SendEmail(to, subject, body string) error {
 	m := gomail.NewMessage()
 	m.SetHeader("From", e.from)
@@ -49,17 +48,16 @@ func (e *EmailService) SendVerificationEmail(to string, token string) error {
 	subject := "Подтверждение регистрации"
 	body := fmt.Sprintf(`
 		<h2>Подтвердите свою регистрацию</h2>
-		<p>Нажмите <a href="http://localhost:8080/auth/verify?token=%s">сюда</a>, чтобы подтвердить email.</p>`, token)
+		<p>Нажмите <a href="%s?token=%s">сюда</a>, чтобы подтвердить email.</p>`, e.route, token)
 
 	return e.SendEmail(to, subject, body)
 }
 
-// SendPasswordResetEmail - Отправка письма для сброса пароля
-func (e *EmailService) SendPasswordResetEmail(to, token string) error {
-	subject := "Сброс пароля"
-	body := fmt.Sprintf(`
-		<h2>Восстановление пароля</h2>
-		<p>Для сброса пароля нажмите <a href="http://localhost:8080/auth/reset-password?token=%s">сюда</a>.</p>`, token)
-
-	return e.SendEmail(to, subject, body)
-}
+//func (e *EmailService) SendPasswordResetEmail(to, token string) error {
+//	subject := "Сброс пароля"
+//	body := fmt.Sprintf(`
+//		<h2>Восстановление пароля</h2>
+//		<p>Для сброса пароля нажмите <a href="http://localhost:8080/auth/reset-password?token=%s">сюда</a>.</p>`, token)
+//
+//	return e.SendEmail(to, subject, body)
+//}

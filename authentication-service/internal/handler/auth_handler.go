@@ -21,17 +21,30 @@ func (h *AuthHandler) Register(c *fiber.Ctx) error {
 		Email    string `json:"email"`
 		Password string `json:"password"`
 	}
-
 	if err := c.BodyParser(&req); err != nil {
 		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Неверный формат запроса"})
 	}
 
-	err := h.authService.RegisterUser(context.Background(), req.Email, req.Password)
-	if err != nil {
+	if err := h.authService.RegisterUser(context.Background(), req.Email, req.Password); err != nil {
 		return c.Status(http.StatusConflict).JSON(fiber.Map{"error": err.Error()})
 	}
 
 	return c.Status(http.StatusCreated).JSON(fiber.Map{"message": "Пользователь успешно зарегистрирован"})
+}
+
+func (h *AuthHandler) SendVerification(c *fiber.Ctx) error {
+	var req struct {
+		Email string `json:"email"`
+	}
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Неверный формат запроса"})
+	}
+
+	if err := h.authService.RequestEmailVerification(context.Background(), req.Email); err != nil {
+		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
+	}
+
+	return c.JSON(fiber.Map{"message": "Письмо для подтверждения отправлено"})
 }
 
 func (h *AuthHandler) Login(c *fiber.Ctx) error {
@@ -44,12 +57,12 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Неверный формат запроса"})
 	}
 
-	accessToken, refreshToken, err := h.authService.LoginUser(context.Background(), req.Email, req.Password)
+	accessToken, refreshToken, userId, err := h.authService.LoginUser(context.Background(), req.Email, req.Password)
 	if err != nil {
 		return c.Status(http.StatusUnauthorized).JSON(fiber.Map{"error": "Неверный email или пароль"})
 	}
 
-	return c.JSON(fiber.Map{"accessToken": accessToken, "refreshToken": refreshToken})
+	return c.JSON(fiber.Map{"accessToken": accessToken, "refreshToken": refreshToken, "userId": userId})
 }
 
 func (h *AuthHandler) Logout(c *fiber.Ctx) error {
@@ -78,7 +91,7 @@ func (h *AuthHandler) Logout(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{"message": "Ваш профиль", "userID": userID})
 }*/
 
-// ForgotPassword - обработчик запроса на восстановление пароля
+/*// ForgotPassword - обработчик запроса на восстановление пароля
 func (h *AuthHandler) ForgotPassword(c *fiber.Ctx) error {
 	var req struct {
 		Email string `json:"email"`
@@ -94,7 +107,7 @@ func (h *AuthHandler) ForgotPassword(c *fiber.Ctx) error {
 	}
 
 	return c.JSON(fiber.Map{"message": "Ссылка для сброса пароля отправлена на email"})
-}
+}*/
 
 func (h *AuthHandler) VerifyEmail(c *fiber.Ctx) error {
 	token := c.Query("token")
@@ -115,11 +128,35 @@ func (h *AuthHandler) VerifyEmail(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{"message": "Email подтвержден!"})
 }
 
+func (h *AuthHandler) ValidateToken(c *fiber.Ctx) error {
+	token := c.FormValue("token")
+	if token == "" {
+		var body struct {
+			Token string `json:"token"`
+		}
+		if err := c.BodyParser(&body); err != nil {
+			return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Отсутствует токен"})
+		}
+		token = body.Token
+	}
+	if token == "" {
+		return c.Status(http.StatusBadRequest).JSON(fiber.Map{"error": "Отсутствует токен"})
+	}
+
+	userID, err := h.authService.ValidateToken(context.Background(), token)
+	if err != nil {
+		return c.Status(http.StatusUnauthorized).JSON(fiber.Map{"error": "Недействительный или истёкший токен"})
+	}
+
+	return c.JSON(fiber.Map{"userId": userID})
+}
+
 // SetupRoutes - регистрация маршрутов
 func (h *AuthHandler) SetupRoutes(app *fiber.App) {
-	app.Post("/auth/register", h.Register)
-	app.Post("/auth/login", h.Login)
-	app.Post("/auth/logout", h.Logout)
-	app.Get("/auth/verify", h.VerifyEmail)
-	app.Get("/auth/forgot-password", h.ForgotPassword)
+	app.Post("/api/auth/register", h.Register)
+	app.Post("/api/auth/login", h.Login)
+	app.Post("/api/auth/logout", h.Logout)
+	app.Post("api/auth/send-verification", h.SendVerification)
+	app.Get("/api/auth/verify", h.VerifyEmail)
+	app.Post("/api/auth/validate", h.ValidateToken)
 }

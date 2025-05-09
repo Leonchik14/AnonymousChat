@@ -5,10 +5,10 @@ services:
     container_name: mysql
     restart: always
     environment:
-      MYSQL_ROOT_PASSWORD: authentication-service
-      MYSQL_DATABASE: auth_db
-      MYSQL_USER: authentication-service
-      MYSQL_PASSWORD: authentication-service
+      MYSQL_ROOT_PASSWORD: anon
+      MYSQL_DATABASE: anon_db
+      MYSQL_USER: anon
+      MYSQL_PASSWORD: anon
     ports:
       - "3306:3306"
     volumes:
