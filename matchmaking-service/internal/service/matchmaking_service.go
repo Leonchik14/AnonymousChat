@@ -57,7 +57,6 @@ func (s *MatchmakingService) FindMatch(ctx context.Context, userID int64) (<-cha
 	}
 	chatID := resp.GetChatId()
 
-	// 5) Уведомляем обоих: сначала партнёра, потом себя
 	s.mu.Lock()
 	if otherCh, ok := s.subscribers[partnerID]; ok {
 		otherCh <- chatID

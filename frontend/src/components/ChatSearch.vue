@@ -6,19 +6,74 @@
       <div class="timer">{{ formattedTime }}</div>
       <div class="searching-subtitle">Please wait while we find someone for you</div>
       <button class="cancel-btn" @click="$emit('cancel')">Cancel</button>
+      <div v-if="showMatchAlert" class="alert-overlay">
+        <div class="alert-box">
+          <button class="close-alert" @click="showMatchAlert = false" aria-label="Close">&times;</button>
+          <div style="margin-bottom: 1rem;">Собеседник найден!</div>
+          <button class="go-to-chat-btn" @click="goToChat">Перейти к чату</button>
+        </div>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { getMatchmakingUrl } from '../config/api'
 const timer = ref(0)
 let interval = null
+
+const showMatchAlert = ref(false)
+const matchedChatId = ref(null)
+
 onMounted(() => {
   timer.value = 0
   interval = setInterval(() => timer.value++, 1000)
+  startLongPolling()
 })
-onUnmounted(() => clearInterval(interval))
+
+function startLongPolling() {
+  const accessToken = localStorage.getItem('accessToken')
+  const userId = localStorage.getItem('userId')
+  fetch(getMatchmakingUrl(), {
+    method: 'GET',
+    headers: {
+      'Authorization': `Bearer ${accessToken}`,
+      'X-User-ID': userId,
+      'Content-Type': 'application/json',
+    },
+  })
+    .then(async (response) => {
+      if (!response.ok) throw new Error('Ошибка поиска собеседника')
+      const data = await response.json()
+      if (data.event === 'match') {
+        matchedChatId.value = data.data
+        showMatchAlert.value = true
+      }
+    })
+    .catch((err) => {
+      // обработка ошибок
+    })
+}
+
+function goToChat() {
+  showMatchAlert.value = false
+  if (matchedChatId.value) {
+    // Эмитим событие для App.vue, чтобы открыть нужный чат
+    // Можно назвать событие partner-found или chat-found
+    // и передать chatId
+    // Например:
+    // $emit('partner-found', matchedChatId.value)
+    // Но в <script setup> используем defineEmits:
+    emit('partner-found', matchedChatId.value)
+  }
+}
+
+const emit = defineEmits(['cancel', 'partner-found'])
+
+onUnmounted(() => {
+  clearInterval(interval)
+})
 
 const formattedTime = computed(() => {
   const min = String(Math.floor(timer.value / 60)).padStart(2, '0')
@@ -48,6 +103,7 @@ const formattedTime = computed(() => {
   min-height: 350px;
   position: relative;
 }
+
 .spinner {
   width: 48px;
   height: 48px;
@@ -95,5 +151,48 @@ const formattedTime = computed(() => {
 }
 .cancel-btn:hover {
   background: #ff3a3a;
+}
+.alert-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+.alert-box {
+  background: #23283a;
+  color: #b6d6ff;
+  padding: 2rem 2.5rem;
+  border-radius: 12px;
+  box-shadow: 0 2px 24px #000a;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.2rem;
+  min-width: 260px;
+  min-height: 120px;
+  position: relative;
+  text-align: center;
+  justify-content: center;
+}
+.close-alert {
+  position: absolute;
+  top: -1.2rem;
+  right: -1.2rem;
+  background: none;
+  border: none;
+  color: #b6d6ff;
+  font-size: 2.2rem;
+  cursor: pointer;
+  line-height: 1;
+  z-index: 10;
+}
+.close-alert:hover {
+  color: #ff6b6b;
 }
 </style>

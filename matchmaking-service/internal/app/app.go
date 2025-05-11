@@ -21,7 +21,6 @@ type App struct {
 	FiberApp *fiber.App
 }
 
-// NewApp - инициализация приложения
 func NewApp() *App {
 	// 🔹 Загружаем переменные окружения из .env
 	if err := godotenv.Load(); err != nil {
@@ -39,7 +38,6 @@ func NewApp() *App {
 	})
 	redisRepo := repository.NewRedisRepository(redisClient)
 
-	// 🔹 Подключаем gRPC-клиент для chat-service
 	chatConn, err := grpc.NewClient(chatServiceHost+":"+chatServicePort, grpc.WithTransportCredentials(insecure.NewCredentials())) // gRPC клиент
 	if err != nil {
 		log.Fatalf("❌ Ошибка подключения к chat-service: %v", err)
@@ -54,7 +52,7 @@ func NewApp() *App {
 	matchmakingHandler := handler.NewMatchmakingHandler(matchmakingService)
 
 	// 🔹 Регистрация маршрутов
-	app.Post("api/matchmaking/start", matchmakingHandler.StartMatchmaking)
+	app.Get("api/matchmaking/start", matchmakingHandler.StartMatchmaking)
 
 	return &App{
 		FiberApp: app,

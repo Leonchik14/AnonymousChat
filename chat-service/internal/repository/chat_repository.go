@@ -59,3 +59,14 @@ func (r *ChatRepository) GetChatHistory(ctx context.Context, chatID int64) ([]mo
 	log.Printf("📜 Загружена история сообщений для чата %d", chatID)
 	return messages, nil
 }
+
+func (r *ChatRepository) GetUserChats(ctx context.Context, userID int64) ([]models.Chat, error) {
+	var chats []models.Chat
+	result := r.db.WithContext(ctx).
+		Where("user1_id = ? OR user2_id = ?", userID, userID).
+		Find(&chats)
+	if result.Error != nil {
+		return nil, fmt.Errorf("ошибка загрузки чатов пользователя %d: %w", userID, result.Error)
+	}
+	return chats, nil
+}

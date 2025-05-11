@@ -1,9 +1,7 @@
 package handler
 
 import (
-	"bufio"
 	"context"
-	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -33,25 +31,20 @@ func (h *MatchmakingHandler) StartMatchmaking(c *fiber.Ctx) error {
 	}
 
 	log.Printf("🔍 Пользователь %d встал в очередь...", userID)
-	// 2) Запускаем поиск — пусть в сервисе это кладёт в очередь и
-	// возвращает канал, куда придёт chatID, когда пара найдена.
+
 	matchCh, err := h.matchmakingService.FindMatch(context.Background(), userID)
 	if err != nil {
 		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
 	}
 
-	c.Set("Content-Type", "text/event-stream")
-	c.Set("Cache-Control", "no-cache")
-	c.Set("Connection", "keep-alive")
+	// 2) Ждём появления chatID в канале
+	chatID, ok := <-matchCh
+	if !ok {
+		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{"error": "канал закрыт без совпадения"})
+	}
 
-	c.Context().Response.Header.Set("Transfer-Encoding", "chunked")
-	c.Context().Response.Header.Set("X-Accel-Buffering", "no")
-
-	c.Context().Response.SetBodyStreamWriter(func(w *bufio.Writer) {
-		if chatID, ok := <-matchCh; ok {
-			fmt.Fprintf(w, "event: match\ndata: %d\n\n", chatID)
-			w.Flush()
-		}
+	return c.JSON(fiber.Map{
+		"event": "match",
+		"data":  chatID,
 	})
-	return nil
 }

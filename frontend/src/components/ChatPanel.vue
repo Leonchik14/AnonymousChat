@@ -1,7 +1,9 @@
 <template>
   <div class="chat-panel" v-if="chat">
     <div class="chat-header">
-      <span class="chat-title">{{ chat.name }}</span>
+      <span class="chat-title">
+        {{ chat.name || 'Anonymous Chat' }}
+      </span>
     </div>
     <div class="chat-messages">
       <div
@@ -14,13 +16,50 @@
       </div>
     </div>
     <div class="chat-input-row">
-      <input class="chat-input" placeholder="Write a message..." />
-      <button class="send-btn">Send</button>
+      <input class="chat-input" v-model="newMessage" placeholder="Write a message..." @keyup.enter="sendMessage" />
+      <button class="send-btn" @click="sendMessage">Send</button>
     </div>
   </div>
 </template>
 <script setup>
+import { ref, watch, onMounted, onUnmounted } from 'vue'
+import { getWsChatUrl } from '../config/api'
+
 const props = defineProps(['chat'])
+const ws = ref(null)
+const newMessage = ref('')
+const userId = Number(localStorage.getItem('userId'))
+
+watch(() => props.chat?.id, (chatId) => {
+  if (ws.value) ws.value.close()
+  if (chatId) {
+    ws.value = new WebSocket(getWsChatUrl() + '/' + chatId)
+    ws.value.onmessage = (event) => {
+      const msg = JSON.parse(event.data)
+      props.chat.messages.push({
+        fromMe: msg.sender_id === userId,
+        text: msg.content,
+        time: new Date(msg.created_at).toLocaleTimeString(),
+        ...msg
+      })
+    }
+  }
+})
+
+function sendMessage() {
+  if (ws.value && newMessage.value.trim()) {
+    ws.value.send(JSON.stringify({
+      senderId: userId,
+      content: newMessage.value,
+      timestamp: new Date().toISOString()
+    }))
+    newMessage.value = ''
+  }
+}
+
+onUnmounted(() => {
+  if (ws.value) ws.value.close()
+})
 </script>
 <style scoped>
 .chat-panel {

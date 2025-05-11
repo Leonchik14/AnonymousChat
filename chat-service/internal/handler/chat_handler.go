@@ -29,7 +29,6 @@ func NewChatHandler(chatRepo *repository.ChatRepository) *ChatHandler {
 func (h *ChatHandler) WebSocketHandler(c *websocket.Conn) {
 	defer c.Close()
 
-	// Получаем chat_id из пути
 	chatIDStr := c.Params("chat_id")
 	chatID, err := strconv.ParseInt(chatIDStr, 10, 64)
 	if err != nil {
@@ -37,7 +36,6 @@ func (h *ChatHandler) WebSocketHandler(c *websocket.Conn) {
 		return
 	}
 
-	// Регистрируем нового WS-клиента
 	if h.clients[chatID] == nil {
 		h.clients[chatID] = make(map[*websocket.Conn]bool)
 	}
@@ -45,7 +43,6 @@ func (h *ChatHandler) WebSocketHandler(c *websocket.Conn) {
 	log.Printf("✅ Пользователь подключился к чату %d", chatID)
 
 	for {
-		// Читаем сырое сообщение
 		_, raw, err := c.ReadMessage()
 		if err != nil {
 			log.Printf("❌ Отключение клиента от чата %d: %v", chatID, err)
@@ -53,17 +50,14 @@ func (h *ChatHandler) WebSocketHandler(c *websocket.Conn) {
 			break
 		}
 
-		// Парсим JSON из фронтенда
 		var wsMsg models.WsMessage
 		if err := json.Unmarshal(raw, &wsMsg); err != nil {
 			log.Println("❌ Неверный формат WS-сообщения:", err)
 			continue
 		}
 
-		// Проставляем серверное время
 		wsMsg.Timestamp = time.Now().UTC()
 
-		// Сохраняем в БД
 		modelMsg := models.Message{
 			ChatID:    chatID,
 			SenderID:  wsMsg.SenderID,
@@ -75,11 +69,9 @@ func (h *ChatHandler) WebSocketHandler(c *websocket.Conn) {
 			continue
 		}
 
-		// Рассылаем всем подключённым клиентам
-		broadcast, _ := json.Marshal(wsMsg)
 		for client := range h.clients[chatID] {
-			if err := client.WriteMessage(websocket.TextMessage, broadcast); err != nil {
-				log.Println("❌ Ошибка отправки сообщения:", err)
+			if err := client.WriteJSON(modelMsg); err != nil {
+				log.Println("❌ Ошибка отправки JSON-сообщения:", err)
 			}
 		}
 	}
@@ -97,4 +89,21 @@ func (h *ChatHandler) GetChatHistory(c *fiber.Ctx) error {
 	}
 
 	return c.JSON(messages)
+}
+
+func (h *ChatHandler) GetAllChats(c *fiber.Ctx) error {
+	userIDStr := c.Get("X-User-ID")
+	if userIDStr == "" {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Необходимо передать X-User-ID"})
+	}
+	userID, err := strconv.ParseInt(userIDStr, 10, 64)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Неверный формат X-User-ID"})
+	}
+
+	chats, err := h.chatRepo.GetUserChats(context.Background(), userID)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})
+	}
+	return c.JSON(chats)
 }

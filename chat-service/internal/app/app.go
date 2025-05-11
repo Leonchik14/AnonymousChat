@@ -60,6 +60,7 @@ func NewApp() *App {
 
 	app.Get("/ws/chat/:chat_id", websocket.New(chatHandler.WebSocketHandler))
 	app.Get("/api/chat/history/:chat_id", chatHandler.GetChatHistory)
+	app.Get("/api/chat/all", chatHandler.GetAllChats)
 
 	return &App{
 		FiberApp: app,
