@@ -13,6 +13,7 @@
     v-else-if="screen === 'emailConfirm'"
     @confirm="confirmCode"
     @resend="resendEmail"
+    @go-to-login="screen = 'login'"
   />
   <ChatHistoryLayout
     v-else-if="screen === 'findPartner'"
@@ -30,7 +31,7 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, watch, onMounted } from 'vue'
 import LoginForm from './components/LoginForm.vue'
 import RegisterForm from './components/RegisterForm.vue'
 import EmailConfirmation from './components/EmailConfirmation.vue'
@@ -45,6 +46,12 @@ const selectedChatId = ref(null)
 watch(screen, async (newScreen) => {
   if (newScreen === 'findPartner') {
     await loadChats()
+  }
+})
+
+onMounted(() => {
+  if (window.location.pathname.startsWith('/confirm')) {
+    screen.value = 'emailConfirm'
   }
 })
 

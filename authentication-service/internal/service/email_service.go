@@ -52,12 +52,3 @@ func (e *EmailService) SendVerificationEmail(to string, token string) error {
 
 	return e.SendEmail(to, subject, body)
 }
-
-//func (e *EmailService) SendPasswordResetEmail(to, token string) error {
-//	subject := "Сброс пароля"
-//	body := fmt.Sprintf(`
-//		<h2>Восстановление пароля</h2>
-//		<p>Для сброса пароля нажмите <a href="http://localhost:8080/auth/reset-password?token=%s">сюда</a>.</p>`, token)
-//
-//	return e.SendEmail(to, subject, body)
-//}

@@ -86,15 +86,20 @@ const formattedTime = computed(() => {
 .searching-bg {
   min-height: 100vh;
   min-width: 100vw;
-  background: #181d29;
+  background: linear-gradient(135deg, #10131a 0%, #181d29 100%);
   display: flex;
   align-items: center;
   justify-content: center;
+  animation: bgfade 1.2s;
+}
+@keyframes bgfade {
+  from { filter: blur(8px) opacity(0.5);}
+  to { filter: blur(0) opacity(1);}
 }
 .searching-card {
-  background: #23283a;
+  background: #181d29ee;
   border-radius: 18px;
-  box-shadow: 0 2px 24px #000a;
+  box-shadow: 0 8px 32px #000a;
   padding: 3rem 2.5rem 2.5rem 2.5rem;
   display: flex;
   flex-direction: column;
@@ -102,16 +107,22 @@ const formattedTime = computed(() => {
   min-width: 350px;
   min-height: 350px;
   position: relative;
+  animation: fadein 0.8s;
 }
-
+@keyframes fadein {
+  from { transform: translateY(40px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
 .spinner {
-  width: 48px;
-  height: 48px;
-  border: 5px solid #2a3142;
-  border-top: 5px solid #b6d6ff;
+  width: 54px;
+  height: 54px;
+  border: 6px solid #23283a;
+  border-top: 6px solid #7f4ad6;
+  border-right: 6px solid #4a90e2;
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin-bottom: 2rem;
+  box-shadow: 0 2px 12px #0003;
 }
 @keyframes spin {
   to { transform: rotate(360deg); }
@@ -119,9 +130,10 @@ const formattedTime = computed(() => {
 .searching-label {
   font-size: 2rem;
   color: #b6d6ff;
-  font-weight: bold;
+  font-weight: 700;
   margin-bottom: 0.5rem;
   text-align: center;
+  letter-spacing: 1px;
 }
 .timer {
   font-size: 1.3rem;
@@ -135,9 +147,10 @@ const formattedTime = computed(() => {
   font-size: 1.05rem;
   margin-bottom: 2rem;
   text-align: center;
+  opacity: 0.95;
 }
 .cancel-btn {
-  background: #ff6a6a;
+  background: linear-gradient(90deg, #ff6a6a 0%, #ff3a3a 100%);
   color: #fff;
   border: none;
   border-radius: 8px;
@@ -145,12 +158,13 @@ const formattedTime = computed(() => {
   font-size: 1.1rem;
   cursor: pointer;
   margin-top: 1rem;
-  transition: background 0.2s;
-  font-weight: 500;
+  transition: background 0.2s, transform 0.1s;
+  font-weight: 600;
   box-shadow: 0 2px 12px #0003;
 }
 .cancel-btn:hover {
-  background: #ff3a3a;
+  background: linear-gradient(90deg, #ff3a3a 0%, #ff6a6a 100%);
+  transform: translateY(-2px) scale(1.03);
 }
 .alert-overlay {
   position: fixed;
@@ -163,13 +177,14 @@ const formattedTime = computed(() => {
   align-items: center;
   justify-content: center;
   z-index: 1000;
+  animation: bgfade 0.3s;
 }
 .alert-box {
-  background: #23283a;
+  background: #181d29ee;
   color: #b6d6ff;
-  padding: 2rem 2.5rem;
-  border-radius: 12px;
-  box-shadow: 0 2px 24px #000a;
+  padding: 2.5rem 2.2rem;
+  border-radius: 18px;
+  box-shadow: 0 8px 32px #000a;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -179,6 +194,7 @@ const formattedTime = computed(() => {
   position: relative;
   text-align: center;
   justify-content: center;
+  animation: fadein 0.5s;
 }
 .close-alert {
   position: absolute;
@@ -191,8 +207,26 @@ const formattedTime = computed(() => {
   cursor: pointer;
   line-height: 1;
   z-index: 10;
+  transition: color 0.2s;
 }
 .close-alert:hover {
   color: #ff6b6b;
+}
+.go-to-chat-btn {
+  background: linear-gradient(90deg, #7f4ad6 0%, #4a90e2 100%);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 0.7rem 1.2rem;
+  cursor: pointer;
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-top: 1rem;
+  box-shadow: 0 2px 12px #0003;
+  transition: all 0.2s;
+}
+.go-to-chat-btn:hover {
+  background: linear-gradient(90deg, #4a90e2 0%, #7f4ad6 100%);
+  transform: translateY(-2px) scale(1.03);
 }
 </style>

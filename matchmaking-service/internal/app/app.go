@@ -42,16 +42,13 @@ func NewApp() *App {
 	if err != nil {
 		log.Fatalf("❌ Ошибка подключения к chat-service: %v", err)
 	}
-	chatClient := chatpb.NewChatServiceClient(chatConn) // Создаем gRPC-клиент
+	chatClient := chatpb.NewChatServiceClient(chatConn)
 
-	// 🔹 Создаем сервис поиска собеседников
 	matchmakingService := service.NewMatchmakingService(redisRepo, chatClient)
 
-	// 🔹 Инициализируем HTTP-сервер
 	app := fiber.New()
 	matchmakingHandler := handler.NewMatchmakingHandler(matchmakingService)
 
-	// 🔹 Регистрация маршрутов
 	app.Get("api/matchmaking/start", matchmakingHandler.StartMatchmaking)
 
 	return &App{

@@ -68,14 +68,22 @@ onUnmounted(() => {
   flex-direction: column;
   background: #181d29;
   height: 100%;
+  animation: fadein 0.8s;
+}
+
+@keyframes fadein {
+  from { transform: translateY(40px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
 }
 
 .chat-header {
-  padding: 1rem;
-  border-bottom: 1px solid #233;
+  padding: 1.2rem;
+  border-bottom: 1px solid #23283a;
   color: #b6d6ff;
   font-size: 1.3rem;
-  font-weight: bold;
+  font-weight: 700;
+  letter-spacing: 1px;
+  background: #181d29;
 }
 
 .chat-messages {
@@ -85,24 +93,30 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   gap: 1rem;
+  background: linear-gradient(135deg, #10131a 0%, #181d29 100%);
 }
 
 .chat-message {
   max-width: 70%;
-  padding: 0.7rem 1rem;
+  padding: 0.8rem 1.2rem;
   border-radius: 12px;
   font-size: 1.1rem;
   position: relative;
   display: flex;
   flex-direction: column;
-  background: #23283a;
-  color: #cbe6ff;
+  animation: messageAppear 0.3s;
+  box-shadow: 0 2px 12px #0003;
+}
+
+@keyframes messageAppear {
+  from { transform: translateY(10px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
 }
 
 .from-me {
   align-self: flex-end;
-  background: #2a3142;
-  color: #b6d6ff;
+  background: linear-gradient(90deg, #7f4ad6 0%, #4a90e2 100%);
+  color: #fff;
 }
 
 .from-them {
@@ -113,44 +127,60 @@ onUnmounted(() => {
 
 .msg-text {
   margin-bottom: 0.3rem;
+  line-height: 1.4;
 }
 
 .msg-time {
   font-size: 0.85rem;
   color: #7fa7d6;
   align-self: flex-end;
+  opacity: 0.8;
 }
 
 .chat-input-row {
   display: flex;
-  padding: 1rem;
-  border-top: 1px solid #233;
+  padding: 1.2rem;
+  border-top: 1px solid #23283a;
   background: #181d29;
+  gap: 1rem;
 }
 
 .chat-input {
   flex: 1;
-  padding: 0.7rem 1rem;
+  padding: 0.8rem 1.2rem;
   border-radius: 8px;
-  border: 1px solid #2a3142;
+  border: 1.5px solid #23283a;
   background: #10131a;
   color: #cbe6ff;
   font-size: 1rem;
-  margin-right: 1rem;
+  transition: all 0.2s;
+}
+
+.chat-input:focus {
+  outline: none;
+  border-color: #7fa7d6;
+  box-shadow: 0 0 0 2px rgba(127, 167, 214, 0.2);
 }
 
 .send-btn {
-  background: #2a3142;
-  color: #b6d6ff;
+  background: linear-gradient(90deg, #7f4ad6 0%, #4a90e2 100%);
+  color: #fff;
   border: none;
   border-radius: 8px;
-  padding: 0.7rem 1.5rem;
-  font-size: 1rem;
+  padding: 0.8rem 1.5rem;
+  font-size: 1.1rem;
+  font-weight: 600;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: all 0.2s;
+  box-shadow: 0 2px 12px #0003;
 }
 
 .send-btn:hover {
-  background: #3a425a;
+  background: linear-gradient(90deg, #4a90e2 0%, #7f4ad6 100%);
+  transform: translateY(-2px) scale(1.03);
+}
+
+.send-btn:active {
+  transform: translateY(0) scale(0.98);
 }
 </style>
